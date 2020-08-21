@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Montserrat&display=swap" rel="stylesheet"> 
+    <link rel="stylesheet" href="style.css">
+    <script src="client.js" defer></script>
+    <title>Grid Domination</title>
+</head>
+<body>
+    <h1 class="headline">Grid Domination</h1>
+    <div class="container new-game">
+        <h2>Create New Game</h2>
+        <button id="create-game" class="btn">Create Game</button>
+        <label for="cell-count">Cell Count</label>
+        <input name="cell-count" id="cell-count" type="range" min="10" max="30" step="5" default="20">
+        <span id="cell-count-text">20</span>
+        <h3>Send this code to your friends</h2>
+        <div id="join-code-output" class="join-code-output">(Click on Create Game for a new Join Code)</div>
+    </div>
+    <div class="container join-game">
+        <h2>Join Existing Game</h2>
+        <button id="join-game" class="btn">Join Game</button>
+        <label for="join-code">Join Code</label>
+        <input name="join-code" id="join-code" type="text">
+    </div>
+</body>
+</html>

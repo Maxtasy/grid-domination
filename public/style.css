@@ -1,0 +1,38 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    color: #F3F3F3;
+    background-color: #0D0D0D;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.headline {
+    font-family: 'Bungee', cursive;
+    color: #962D3E;
+}
+
+.btn {
+    font-family: inherit;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-size: 1.3rem;
+    padding: .5em 1em;
+    border: none;
+    outline: none;
+    margin: 1em;
+    border-radius: 100vmax;
+    background-color: #348899;
+    color: #FFFFFF;
+}
+
+.btn:hover {
+    background-color: #247383;
+}
