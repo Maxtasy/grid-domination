@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Montserrat&display=swap" rel="stylesheet"> 
     <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
     <script src="client.js" defer></script>
     <title>Grid Domination</title>
 </head>
@@ -19,6 +20,7 @@
             <label for="player-count">Player Count: <span id="player-count-text">3</span></label>
             <input name="player-count" id="player-count" type="range" min="2" max="5" step="1" default="3">
             <button id="create-game" class="btn">Create Game</button>
+            <span class="create-error-text"></span>
             <h3>Send this code to your friends</h2>
             <div id="join-code-output" class="join-code-output">(Click on Create Game for a new Join Code)</div>
         </div>
@@ -32,6 +34,6 @@
     </div>
     <div class="container players"></div>
     <div class="container cells-container"></div>
-    <span class="timer-text"></span>
+    <span class="game-info-text"></span>
 </body>
 </html>

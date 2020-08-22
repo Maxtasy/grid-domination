@@ -18,11 +18,11 @@
     "url": "https://github.com/Maxtasy/grid-domination/issues"
   },
   "homepage": "https://github.com/Maxtasy/grid-domination#readme",
-  "devDependencies": {
-    "nodemon": "^2.0.4"
-  },
   "dependencies": {
     "express": "^4.17.1",
-    "websocket": "^1.0.31"
+    "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
   }
 }

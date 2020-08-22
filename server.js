@@ -1,158 +1,137 @@
-const http = require("http");
 const express = require("express");
-const websocketServer = require("websocket").server;
-const PORT = process.env.PORT || 3001;
-const PORT_1 = process.env.PORT || 3000;
+const path = require("path");
+const http = require("http");
+const socketio = require("socket.io");
+const PORT = process.env.PORT || 3000;
 
 const app = express();
+const server = http.createServer(app);
+const io = socketio(server);
 
-app.use(express.static(__dirname + "/public"));
+// Set static folder
+app.use(express.static(path.join(__dirname, "public")));
 
-app.listen(PORT, () => {
-    console.log(`Listening on http port ${PORT}`);
-});
-
-const httpServer = http.createServer();
-
-httpServer.listen(PORT_1, () => {
-    console.log(`Listening on port ${PORT_1}`);
+// Start server
+server.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
 });
 
 // Hash map for clients
 const clients = {};
-
 // Hash map for games
 const games = {};
 
-const wsServer = new websocketServer({
-    httpServer: httpServer
-});
+let frame = 0;
 
-wsServer.on("request", request => {
-    // A client connects to the server
-    const connection = request.accept(null, request.origin);
+io.on("connection", socket => {
+    const clientId = guid();
+    clients[clientId] = {socket: socket, gameCreateSpam: 0};
+    clients[clientId].socket.emit("client-id", clientId);
 
-    connection.on("open", () => console.log("Opened a connection."));
-    connection.on("close", () => console.log("Closed a connection."));
-    connection.on("message", message => {
-        const result = JSON.parse(message.utf8Data);
-        
-        if (result.method === "create") {
-            const clientId = result.clientId;
-            const cellCount = result.cellCount;
-            const playerCount = result.playerCount;
-            const gameId = guid();
+    socket.on("create-game", data => {
+        const clientId = data.clientId;
 
-            const cells = [];
-            for (let i = 0; i < cellCount; i++) {
-                cells.push(null);
-            }
-
-            games[gameId] = {
-                id: gameId,
-                started: false,
-                timer: 30,
-                cellCount: cellCount,
-                playerCount: playerCount,
-                clients: {},
-                cells: cells
-            };
-
-            const payLoad = {
-                method: "create",
-                game: games[gameId]
-            };
-
-            clients[clientId].connection.send(JSON.stringify(payLoad));
-        } else if (result.method === "join") {
-            const clientId = result.clientId;
-            const gameId = result.gameId;
-            const game = games[gameId];
-            const playerCount = game.playerCount;
-            const currentPlayerCount = Object.keys(game.clients).length;
-
-            console.log(`Client ${clientId} wants to join game ${gameId}`);
-
-            if (!game || currentPlayerCount >= playerCount) {
-                // Game already full
-                const payLoad = {
-                    method: "error-message",
-                    text: "Game already full."
-                };
-                clients[clientId].connection.send(JSON.stringify(payLoad));
-                return;
-            }
-
-            let color;
-            if (currentPlayerCount === 0) color = "color0";
-            if (currentPlayerCount === 1) color = "color1";
-            if (currentPlayerCount === 2) color = "color2";
-            if (currentPlayerCount === 3) color = "color3";
-            if (currentPlayerCount === 4) color = "color4";
-
-            game.clients[clientId] = {id: clientId, color: color};
-        
-            const payLoad = {
-                method: "join",
-                game: game
-            };
-
-            if (currentPlayerCount === playerCount - 1) {
-                console.log(`Starting game ${gameId}`);
-                game.started = true;
-                sendGameUpdateToAllClients();
-            }
-
-            for (let key in game.clients) {
-                clients[key].connection.send(JSON.stringify(payLoad));
-            }
-        } else if (result.method === "claimCell") {
-            const clientId = result.clientId;
-            const gameId = result.gameId;
-            const game = games[gameId];
-            const cellId = result.cellId;
-            const color = game.clients[clientId].color;
-        
-            game.cells[cellId] = color;
+        if (clients[clientId].gameCreateSpam > 10) {
+            clients[clientId].socket.emit("create-error", "You created too many games in a short amount if time. Try again later.");
+            return;
         }
+
+        const cellCount = data.cellCount;
+        const playerCount = data.playerCount;
+        const gameId = guid();
+        const game = {
+            gameId: gameId,
+            dropTimer: 360,
+            started: false,
+            timer: 10,
+            cellCount: cellCount,
+            playerCount: playerCount,
+            currentPlayerCount: 0,
+            clients: {},
+            cells: {}
+        }
+    
+        games[gameId] = game;
+
+        clients[clientId].gameCreateSpam++;
+    
+        clients[clientId].socket.emit("create-game", gameId);
     });
 
-    // Generate a new Client ID and store clients connection in array
-    const clientId = guid();
-    clients[clientId] = {
-        connection: connection,
-    };
+    socket.on("join-game", data => {
+        const clientId = data.clientId;
+        const gameId = data.gameId;
+        const game = games[gameId];
 
-    const payLoad = {
-        method: "connect",
-        clientId: clientId
-    };
+        if (game.started) {
+            clients[clientId].emit("join-error", "Game is already full.");
+            return;
+        }
 
-    clients[clientId].connection.send(JSON.stringify(payLoad));
+        let color;
+        if (game.currentPlayerCount === 0) color = "color0";
+        if (game.currentPlayerCount === 1) color = "color1";
+        if (game.currentPlayerCount === 2) color = "color2";
+        if (game.currentPlayerCount === 3) color = "color3";
+        if (game.currentPlayerCount === 4) color = "color4";
+
+        game.clients[clientId] = {id: clientId, color: color}
+
+        game.currentPlayerCount++;
+        if (game.currentPlayerCount >= game.playerCount) {
+            console.log(`Game ${gameId} started.`)
+            game.started = true;
+        }
+
+        Object.keys(game.clients).forEach(client => {
+            clients[client].socket.emit("join-game", game);
+        });
+    });
+
+    socket.on("claim-cell", data => {
+        const clientId = data.clientId;
+        const gameId = data.gameId;
+        const cellId = data.cellId;
+        const game = games[gameId];
+
+        game.cells[cellId] = game.clients[clientId].color;
+    });
 });
-let frame = 0;
-// Gets called each time a new game starts, which is bad
-function sendGameUpdateToAllClients() {
+
+function updateLoop() {
+    // console.log(Object.keys(games).length)
     for (let gameId in games) {
-        game = games[gameId];
-        if (!game.started) continue;
-        const payLoad = {
-            method: "update",
-            game: game
-        };
-        for (let clientId in games[gameId].clients) {
-            clients[clientId].connection.send(JSON.stringify(payLoad));
-        }
-
-        if (frame % 2 === 0) game.timer--;
-
-        if (game.timer <= 0) {
-            console.log("time ran out")
-        }
+        sendUpdateToClients(gameId)
     }
 
-    frame++;
-    setTimeout(sendGameUpdateToAllClients, 500);
+    setTimeout(updateLoop, 500);
+}
+
+function sendUpdateToClients(gameId) {
+    if (games[gameId].started) {
+        // Send updated game to all clients of the session
+        for (let clientId in games[gameId].clients) {
+            clients[clientId].socket.emit("game-update", games[gameId]);
+        }
+        frame++;
+        if (frame % 2 === 0) {
+            games[gameId].timer--;
+
+            if (games[gameId].timer <= 0) {
+                for (let clientId in games[gameId].clients) {
+                    clients[clientId].socket.emit("game-over", games[gameId]);
+                }
+                //Remove from games hash map
+                delete games[gameId];
+            }
+        }
+    } else {
+        games[gameId].dropTimer--;
+        if (games[gameId].dropTimer <= 0) {
+            console.log(`Dropping game ${gameId} due to inactivity.`)
+            delete games[gameId];
+        }
+    }
 }
 
 // Code to gerenate GUIDs
@@ -163,3 +142,5 @@ function s4() {
 function guid() {    
     return `${s4() + s4()}-${s4()}-${s4()}-${s4()}-${s4() + s4() + s4()}`;
 }
+
+updateLoop();

@@ -11,99 +11,125 @@ const playersContainer = document.querySelector(".players");
 const cellsContainer = document.querySelector(".cells-container");
 const joinCodeRunningGame = document.querySelector("#join-code-running-game");
 const errorText = document.querySelector(".error-text");
-const timerText = document.querySelector(".timer-text");
+const gameInfoText = document.querySelector(".game-info-text");
+const createErrorText = document.querySelector(".create-error-text");
 
 let clientId = null;
-let clientColor = null;
 let gameId = null;
+let game;
+let clientColor = null;
 let gridBuilt = false;
 
-let ws = new WebSocket("ws://localhost:3000");
+const socket = io();
 
-ws.onmessage = message => {
-    const response = JSON.parse(message.data);
+socket.on("client-id", id => {
+    clientId = id;
+});
 
-    if (response.method === "connect") {
-        clientId = response.clientId;
-    } else if (response.method === "create") {
-        gameId = response.game.id;
-        joinCodeOutput.textContent = gameId;
-    } else if (response.method === "join") {
-        game = response.game;
-        clientColor = game.clients[clientId].color;
-        playersContainer.innerHTML = "";
+socket.on("create-game", id => {
+    gameId = id;
+    joinCodeOutput.textContent = gameId;
+});
 
-        for (let key in game.clients) {
-            const div = document.createElement("div");
-            div.classList.add("player", game.clients[key].color);
-            if (key === clientId) div.textContent = "You";
-            playersContainer.appendChild(div);
-        }
+socket.on("join-game", game => {
+    gameId = game.gameId;
+    clientColor = game.clients[clientId].color;
+    playersContainer.innerHTML = "";
 
-        gameSetupContainer.style.display = "none";
-        joinCodeRunningGame.textContent = gameId;
-
-        if (!gridBuilt) {
-            for (let i = 0; i < game.cellCount; i++) {
-                const cell = document.createElement("div");
-                cell.classList.add("cell");
-                cell.dataset.id = i;
-                cell.addEventListener("click", (e) => {
-                    if (game.started) {
-                        claimCell(e.target)
-                    }
-                });
-                cellsContainer.appendChild(cell);
-            }
-            gridBuilt = true;
-        }
-    } else if (response.method === "update") {
-        const game = response.game;
-        for (let cellIndex in game.cells) {
-            if (game.cells[cellIndex]) {
-                document.querySelector(`[data-id='${cellIndex}']`).dataset.owner = game.cells[cellIndex];
-            }
-        }
-        timerText.textContent = game.timer;
-    } else if (response.method === "error-message") {
-        errorText.textContent = response.text;
+    for (let key in game.clients) {
+        const div = document.createElement("div");
+        div.classList.add("player", game.clients[key].color);
+        if (key === clientId) div.textContent = "You";
+        playersContainer.appendChild(div);
     }
-};
+
+    gameSetupContainer.style.display = "none";
+    joinCodeRunningGame.textContent = gameId;
+
+    if (!gridBuilt) {
+        for (let i = 0; i < game.cellCount; i++) {
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            cell.dataset.id = i;
+            cell.addEventListener("click", (e) => {
+                claimCell(e.target)
+            });
+            cellsContainer.appendChild(cell);
+        }
+        gridBuilt = true;
+    }
+});
+
+socket.on("join-error", text => {
+    errorText.textContent = text;
+});
+
+socket.on("create-error", text => {
+    createErrorText.textContent = text;
+    createGameButton.style.cursor = "not-allowed";
+});
+
+socket.on("game-update", game => {
+    for (let cellIndex in game.cells) {
+        if (game.cells[cellIndex]) {
+            document.querySelector(`[data-id='${cellIndex}']`).dataset.owner = game.cells[cellIndex];
+        }
+    }
+    gameInfoText.textContent = game.timer;
+});
+
+socket.on("game-over", game => {
+    let winner;
+    let most = 0;
+    Object.keys(game.clients).forEach(player => {
+        const playerColor = game.clients[player].color;
+        const ownedCells = document.querySelectorAll(`[data-owner='${playerColor}']`).length;
+
+        if (ownedCells > most) {
+            winner = playerColor;
+            most = ownedCells;
+        }
+    });
+    gameInfoText.textContent = `${winner} won the round.`;
+});
 
 function claimCell(cell) {
     const cellId = cell.dataset.id;
 
     cell.dataset.owner = clientColor;
 
-    const payLoad = {
-        method: "claimCell",
+    const data = {
         gameId: gameId,
         clientId: clientId,
         cellId: cellId
     };
-    ws.send(JSON.stringify(payLoad))
+    socket.emit("claim-cell", data)
 }
 
 createGameButton.addEventListener("click", () => {
     const cellCount = cellCountSlider.value;
     const playerCount = playerCountSlider.value;
-    const payLoad = {
-        method: "create",
+    const data = {
         clientId: clientId,
         cellCount: cellCount,
         playerCount: playerCount
     };
-    ws.send(JSON.stringify(payLoad));
+    socket.emit("create-game", data);
 });
 
 joinGameButton.addEventListener("click", () => {
-    if (gameId === null) gameId = joinCodeInput.value;
-    const payLoad = {
-        method: "join",
-        gameId: gameId,
-        clientId: clientId
+    const joinCode = joinCodeInput.value;
+    if (!gameId && !joinCode) return;
+    
+    let id;
+    if (joinCode) id = joinCode;
+    else id = gameId;
+
+    const data = {
+        clientId: clientId,
+        gameId: id
     };
-    ws.send(JSON.stringify(payLoad));
+    socket.emit("join-game", data);
 });
 
 cellCountSlider.addEventListener("input", (e) => {
