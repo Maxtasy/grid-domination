@@ -1,20 +1,16 @@
 const http = require("http");
 const express = require("express");
 const websocketServer = require("websocket").server;
-// const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const PORT_1 = 3000;
-const PORT_2 = 3001;
+// const PORT_2 = 3001;
 
 const app = express();
 
-// app.get("/", (req, res) => {
-//     res.sendFile(__dirname + "/index.html");
-// });
-
 app.use(express.static(__dirname + "/public"));
 
-app.listen(PORT_2, () => {
-    console.log(`Listening on http port ${PORT_2}`);
+app.listen(PORT, () => {
+    console.log(`Listening on http port ${PORT}`);
 });
 
 const httpServer = http.createServer();
