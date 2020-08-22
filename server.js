@@ -45,11 +45,22 @@ wsServer.on("request", request => {
         if (result.method === "create") {
             const clientId = result.clientId;
             const cellCount = result.cellCount;
+            const playerCount = result.playerCount;
             const gameId = guid();
+
+            const cells = [];
+            for (let i = 0; i < cellCount; i++) {
+                cells.push(null);
+            }
 
             games[gameId] = {
                 id: gameId,
-                cellCount: cellCount
+                started: false,
+                timer: 30,
+                cellCount: cellCount,
+                playerCount: playerCount,
+                clients: {},
+                cells: cells
             };
 
             const payLoad = {
@@ -61,8 +72,53 @@ wsServer.on("request", request => {
         } else if (result.method === "join") {
             const clientId = result.clientId;
             const gameId = result.gameId;
+            const game = games[gameId];
+            const playerCount = game.playerCount;
+            const currentPlayerCount = Object.keys(game.clients).length;
 
             console.log(`Client ${clientId} wants to join game ${gameId}`);
+
+            if (!game || currentPlayerCount >= playerCount) {
+                // Game already full
+                const payLoad = {
+                    method: "error-message",
+                    text: "Game already full."
+                };
+                clients[clientId].connection.send(JSON.stringify(payLoad));
+                return;
+            }
+
+            let color;
+            if (currentPlayerCount === 0) color = "color0";
+            if (currentPlayerCount === 1) color = "color1";
+            if (currentPlayerCount === 2) color = "color2";
+            if (currentPlayerCount === 3) color = "color3";
+            if (currentPlayerCount === 4) color = "color4";
+
+            game.clients[clientId] = {id: clientId, color: color};
+        
+            const payLoad = {
+                method: "join",
+                game: game
+            };
+
+            if (currentPlayerCount === playerCount - 1) {
+                console.log(`Starting game ${gameId}`);
+                game.started = true;
+                sendGameUpdateToAllClients();
+            }
+
+            for (let key in game.clients) {
+                clients[key].connection.send(JSON.stringify(payLoad));
+            }
+        } else if (result.method === "claimCell") {
+            const clientId = result.clientId;
+            const gameId = result.gameId;
+            const game = games[gameId];
+            const cellId = result.cellId;
+            const color = game.clients[clientId].color;
+        
+            game.cells[cellId] = color;
         }
     });
 
@@ -79,7 +135,30 @@ wsServer.on("request", request => {
 
     clients[clientId].connection.send(JSON.stringify(payLoad));
 });
+let frame = 0;
+// Gets called each time a new game starts, which is bad
+function sendGameUpdateToAllClients() {
+    for (let gameId in games) {
+        game = games[gameId];
+        if (!game.started) continue;
+        const payLoad = {
+            method: "update",
+            game: game
+        };
+        for (let clientId in games[gameId].clients) {
+            clients[clientId].connection.send(JSON.stringify(payLoad));
+        }
 
+        if (frame % 2 === 0) game.timer--;
+
+        if (game.timer <= 0) {
+            console.log("time ran out")
+        }
+    }
+
+    frame++;
+    setTimeout(sendGameUpdateToAllClients, 500);
+}
 
 // Code to gerenate GUIDs
 function s4() {

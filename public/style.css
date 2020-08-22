@@ -19,6 +19,16 @@ body {
     color: #962D3E;
 }
 
+.container {
+    display: flex;
+}
+
+.new-game, 
+.join-game {
+    flex-direction: column;
+    margin: 3rem;
+}
+
 .btn {
     font-family: inherit;
     text-transform: uppercase;
@@ -35,4 +45,50 @@ body {
 
 .btn:hover {
     background-color: #247383;
+}
+
+.player {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cells-container {
+    width: 500px;
+    flex-wrap: wrap;
+}
+
+.cell {
+    cursor: pointer;
+    width: 100px;
+    height: 100px;
+    background-color: #F3F3F3;
+    border: 1px solid #962D3E;
+}
+
+[data-owner="color0"],
+.color0 {
+    background-color: #F2798F;
+}
+
+[data-owner="color1"],
+.color1 {
+    background-color: #6BA7BF;
+}
+
+[data-owner="color2"],
+.color2 {
+    background-color: #8BBF73;
+}
+
+[data-owner="color3"],
+.color3 {
+    background-color: #DE44F2;
+}
+
+[data-owner="color4"],
+.color4 {
+    background-color: #F25835;
 }
