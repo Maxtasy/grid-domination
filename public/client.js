@@ -18,7 +18,8 @@ let clientColor = null;
 let gameId = null;
 let gridBuilt = false;
 
-let ws = new WebSocket("ws://localhost:3000");
+// let ws = new WebSocket("ws://localhost:3000");
+let ws = new WebSocket("https://grid-domination.herokuapp.com/");
 
 ws.onmessage = message => {
     const response = JSON.parse(message.data);
