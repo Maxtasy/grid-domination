@@ -18,9 +18,7 @@ let clientColor = null;
 let gameId = null;
 let gridBuilt = false;
 
-// let ws = new WebSocket("ws://localhost:3000");
-let HOST = location.origin.replace(/^https/, 'ws');
-let ws = new WebSocket(HOST);
+let ws = new WebSocket("ws://localhost:3000");
 
 ws.onmessage = message => {
     const response = JSON.parse(message.data);
@@ -50,7 +48,11 @@ ws.onmessage = message => {
                 const cell = document.createElement("div");
                 cell.classList.add("cell");
                 cell.dataset.id = i;
-                cell.addEventListener("click", (e) => claimCell(e.target));
+                cell.addEventListener("click", (e) => {
+                    if (game.started) {
+                        claimCell(e.target)
+                    }
+                });
                 cellsContainer.appendChild(cell);
             }
             gridBuilt = true;

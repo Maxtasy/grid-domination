@@ -1,5 +1,5 @@
 {
-  "name": "multiplayer-with-websockets",
+  "name": "grid-domination",
   "version": "1.0.0",
   "description": "Multiplayer game using websockets",
   "main": "server.js",
@@ -9,15 +9,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Maxtasy/multiplayer-with-websockets.git"
+    "url": "git+https://github.com/Maxtasy/grid-domination.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Maxtasy/multiplayer-with-websockets/issues"
+    "url": "https://github.com/Maxtasy/grid-domination/issues"
   },
-  "homepage": "https://github.com/Maxtasy/multiplayer-with-websockets#readme",
+  "homepage": "https://github.com/Maxtasy/grid-domination#readme",
   "devDependencies": {
     "nodemon": "^2.0.4"
   },
