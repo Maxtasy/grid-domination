@@ -19,7 +19,7 @@ let gameId = null;
 let gridBuilt = false;
 
 // let ws = new WebSocket("ws://localhost:3000");
-let HOST = location.origin.replace(/^http/, 'ws');
+let HOST = location.origin.replace(/^https/, 'ws');
 let ws = new WebSocket(HOST);
 
 ws.onmessage = message => {
